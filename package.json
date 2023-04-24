@@ -8,16 +8,20 @@
   },
   "dependencies": {
     "core-js": "^3.8.3",
+    "fabric": "^2.3.0",
+    "gsap": "^3.11.5",
+    "lil-gui": "^0.18.1",
+    "three": "^0.151.3",
     "vue": "^2.6.14"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~5.0.0",
-    "@vue/cli-service": "~5.0.0",
-    "vue-template-compiler": "^2.6.14"
+    "@vue/cli-service": "~5.0.0"
   },
   "browserslist": [
     "> 1%",
     "last 2 versions",
-    "not dead"
+    "not dead",
+    "not ie 11"
   ]
 }
