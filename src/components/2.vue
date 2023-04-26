@@ -106,8 +106,8 @@ export default {
                 obj.material.color.set(value);
               });
           } else if (obj.name === "Side02") {
-            // let canvas = document.getElementById("c");
-            var canvasTexture = new THREE.CanvasTexture(mixer);
+            let canvas = document.getElementById("c");
+            var canvasTexture = new THREE.CanvasTexture(canvas);
             canvasTexture.wrapS = THREE.RepeatWrapping;
             canvasTexture.wrapT = THREE.RepeatWrapping;
             obj.material.map = canvasTexture;
