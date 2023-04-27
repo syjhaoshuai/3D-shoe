@@ -1,14 +1,19 @@
 <template>
   <div>
-    <canvas ref="canvas" />
-    <div class="div">
-      <canvas
-        width="200"
-        height="200"
-        style="border: 1px solid #ccc"
-        id="c"
-      ></canvas>
+    <div class="text">
+      <div class="top">
+        <div @click="onclose">轨道</div>
+        <div @click="ClickImg">图片</div>
+      </div>
+      <div @click="addimg">
+        <img src="./assets/iTab-cGMoMFlBcEk.webp" alt="" />
+        <img src="./assets/iTab-FHiJZ0lgBaE.jpg" alt="" />
+        <img src="./assets/iTab-R7aGzmbwACQ.webp" alt="" />
+        <img src="./assets/iTab-zJF1lRdUdAw.jpg" alt="" />
+      </div>
     </div>
+    <canvas ref="canvas" />
+    <div class="cby-3dcore-ctexture-wrap" ref="ctWrapEle"></div>
   </div>
 </template>
 
@@ -22,42 +27,93 @@ export default {
   name: "App",
   data() {
     return {
+      ctWrapEle: {},
       canvas1: {},
       gltfres: {},
       ctFabric: {},
       ctCanvas: {},
+      objItem: {},
     };
   },
-  methods: {},
+  methods: {
+    addimg(e) {
+      let ctFabric1 = this.ctFabric;
+      console.log();
+      if (e.target.localName === "img") {
+        var img = new fabric.Image(
+          e.target,
+          // 设置图片的位置为固定位置
+          {
+            left: 1100,
+            top: 370.64996971937535,
+            angle: 0,
+            scaleX: 0.19098945265925424,
+            scaleY: 0.19098945265925424,
+            flipX: false,
+            flipY: false,
+            //
+            originX: "center",
+            originY: "center",
+            padding: 10,
+          }
+          // 将图片添加到画布中
+        );
+        ctFabric1.add(img);
+      }
+    },
+    onclose() {
+      console.log(this.ctWrapEle);
+      this.ctWrapEle.style.pointerEvents = "none";
+    },
+    ClickImg() {
+      this.ctWrapEle.style.pointerEvents = "all";
+    },
+  },
   mounted() {
+    this.ctWrapEle = this.$refs.ctWrapEle;
+
+    let iskai = false;
+    let targetMap = {};
+    let ctCanvas = document.createElement("canvas");
+    ctCanvas.width = window.innerWidth;
+    ctCanvas.height = window.innerHeight;
+
+    let ctFabric = new fabric.Canvas(ctCanvas, {
+      preserveObjectStacking: true,
+    });
+
+    this.ctFabric = ctFabric;
+    this.ctFabric.setWidth(window.innerWidth);
+    this.ctFabric.setHeight(window.innerHeight);
+
     const texturePx = 2048;
 
-    // create mixer   canvas.getContext('2d') 方法返回指定画布元素的 2D 渲染上下文。
-    // 该上下文提供了必要的方法和属性，以在画布上进行绘制、填充、擦除和变换等操作。通过这个上下文，我们可以使用 JavaScript 绘制各种图形、图像以及创建动画等。
     let mixer = document.createElement("canvas");
     const mixerCtx = mixer.getContext("2d");
     mixer.width = texturePx;
     mixer.height = texturePx;
 
-    const canvasfabric = new fabric.Canvas("c");
-
-    fabric.Image.fromURL("./chunk-70-AHT-SLO-42.5.png", function (img) {
-      // 设置图片的位置为固定位置
-      img.set({ left: 0, top: 0, selectable: false });
-      // 将图片添加到画布中
-      canvasfabric.add(img);
-    });
-    // 创建矩形元素
-    const rect = new fabric.Rect({
-      top: 10,
-      left: 10,
-      width: 60,
-      height: 60,
-      fill: "red",
-    });
-
-    // 将矩形添加到画布中
-    canvasfabric.add(rect);
+    const update = () => {
+      iskai = true;
+      mixerCtx.clearRect(0, 0, mixer.width, mixer.height);
+      mixerCtx.drawImage(
+        ctCanvas,
+        0,
+        0,
+        ctCanvas.width,
+        ctCanvas.height,
+        -1930.366060724328,
+        -76.16457924156413,
+        5482.2720730225055,
+        2656.5422335436615
+      );
+      // basic color
+      mixerCtx.globalCompositeOperation = "destination-over";
+      mixerCtx.fillStyle = "#ffffff";
+      mixerCtx.fillRect(0, 0, mixer.width, mixer.height);
+      targetMap.needsUpdate = true;
+      render();
+    };
 
     // 创建矩形元素
     const canvas = this.$refs.canvas;
@@ -78,7 +134,7 @@ export default {
     scene.add(camera);
 
     const loader = new GLTFLoader();
-
+    loader.setCrossOrigin(true); //跨域共享资源
     const guiobj = {
       leftColor: "#9d9d9d",
       rightColor: "#9d9d9d",
@@ -95,6 +151,7 @@ export default {
     loader.load(
       "./chunk-70-AHT-091001.glb",
       function (gltf) {
+        iskai = true;
         const carModel = gltf.scene;
         carModel.traverse((obj) => {
           if (obj.name === "Side01") {
@@ -111,10 +168,12 @@ export default {
             canvasTexture.wrapS = THREE.RepeatWrapping;
             canvasTexture.wrapT = THREE.RepeatWrapping;
             obj.material.map = canvasTexture;
-
-            canvasfabric.on("after:render", function () {
-              obj.material.map.needsUpdate = true;
+            obj.material.map.needsUpdate = true;
+            obj.material.map.flipY = false; //图片反
+            ctFabric.on("after:render", function () {
+              update();
             });
+            targetMap = obj.material.map;
             // 左
             gui
               .addColor(guiobj, "leftColor")
@@ -131,7 +190,6 @@ export default {
                 obj.material.color.set(value);
               });
           } else if (obj.name === "Tongue") {
-            console.log(22);
             gui
               .addColor(guiobj, "frontColor")
               .name("前面")
@@ -141,10 +199,11 @@ export default {
           } else {
           }
         });
-        console.log(gltf.scene);
         gltf.scene.rotation.y = -1.8;
         // gltf.scene.position.z = 0.5;
         // gltf.scene.position.y = -0.5;
+        update();
+
         gltres(gltf.scene);
       },
       undefined,
@@ -203,32 +262,31 @@ export default {
 
     //轨道控制器
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.maxDistance = 9;
-    controls.minDistance = 1;
-
-    controls.minPolarAngle = 0;
-    controls.maxPolarAngle = (80 / 360) * 2 * Math.PI;
-
+    controls.enablePan = false;
     controls.update();
-
-    this.ctCanvas = document.createElement("canvas");
-    let ctFabric = new fabric.Canvas(this.ctCanvas, {
-      preserveObjectStacking: true,
+    controls.addEventListener("change", () => {
+      iskai = true;
     });
-    ctFabric.setWidth(window.innerWidth);
-    ctFabric.setHeight(window.innerHeight);
-    this.ctFabric = ctFabric;
-
     //使用渲染器 ，通过相机将场景渲染进来
     function render() {
-      ctFabric.renderAll();
-      renderer.render(scene, camera);
-      // controls.update();
-      //   渲染下一帧的时候就会调用render函数
-      requestAnimationFrame(render);
-    }
+      controls.update();
+      if (iskai) {
+        setInterval(() => {
+          if (iskai) iskai = false;
+        }, 100);
+        controls.update();
+        renderer.render(scene, camera);
+      }
 
-    render();
+      //   渲染下一帧的时候就会调用render函数
+    }
+    renderer.setAnimationLoop(render);
+
+    if (this.$refs.ctWrapEle.firstChild) {
+      this.$refs.ctWrapEle.removeChild(this.$refs.ctWrapEle.firstChild);
+    }
+    this.$refs.ctWrapEle.appendChild(this.ctFabric.wrapperEl);
+
     window.addEventListener("resize", function () {
       // camera
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -261,5 +319,41 @@ img {
 
   z-index: 1111 !important;
   /* background-color: red; */
+}
+
+.cby-3dcore-ctexture-wrap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+}
+.text {
+  width: 500px;
+  height: 300px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 77777;
+
+  background-color: rgb(155, 177, 170, 0.2);
+}
+.top {
+  display: flex;
+  width: 100%;
+}
+.top div {
+  width: 40px;
+  text-align: center;
+  line-height: 40px;
+  margin: 20px 50px;
+  background-color: rgb(22, 239, 170);
+}
+img {
+  width: 80px;
+  height: 60px;
 }
 </style>
