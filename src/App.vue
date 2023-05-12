@@ -1,359 +1,585 @@
 <template>
-  <div>
+  <div :class="isMobile === 'pc' ? 'pc' : 'Mobile'">
+    <canvas ref="canvas" />
     <div class="text">
       <div class="top">
-        <div @click="onclose">轨道</div>
-        <div @click="ClickImg">图片</div>
+        <div
+          class="item"
+          @click="topClick(index, item.rotate, item.type)"
+          :class="index === activeId ? 'active' : ''"
+          v-for="(item, index) in list"
+          :key="index"
+        >
+          {{ item.title }}
+        </div>
       </div>
-      <div @click="addimg">
-        <img src="./assets/iTab-cGMoMFlBcEk.webp" alt="" />
-        <img src="./assets/iTab-FHiJZ0lgBaE.jpg" alt="" />
-        <img src="./assets/iTab-R7aGzmbwACQ.webp" alt="" />
-        <img src="./assets/iTab-zJF1lRdUdAw.jpg" alt="" />
+      <div class="tow">
+        <div
+          @click="towClick(index)"
+          :class="index === activePid ? 'active' : ''"
+          class="item"
+          v-for="(item, index) in secondLevel"
+          :key="index"
+        >
+          {{ item.title }}
+        </div>
+      </div>
+      <div class="imgs">
+        <div v-if="showImgList.title === '文字'" class="text_img">
+          <div class="text_input">
+            <input
+              :style="color"
+              class="textInput"
+              v-model="text"
+              type="text"
+            />
+            <button @click="addText">确定</button>
+          </div>
+          <div>
+            <Sketch v-if="isMobile === 'pc'" v-model="selectedColor"></Sketch>
+            <Slider
+              style="width: 100vw"
+              v-else
+              v-model="selectedColor"
+            ></Slider>
+            <!-- <Photoshop v-model="selectedColor" /> -->
+          </div>
+        </div>
+        <div
+          v-else
+          :class="index === activeImg && activePid === 1 ? 'active' : ''"
+          class="itemImg"
+          v-for="(item, index) in showImgList.value"
+          :key="index"
+        >
+          <div v-if="item.type">{{ item.title }}</div>
+          <img
+            @click="Textures(item.type, item.url, index)"
+            :src="item.url"
+            alt=""
+          />
+        </div>
       </div>
     </div>
-    <canvas ref="canvas" />
-    <div class="cby-3dcore-ctexture-wrap" ref="ctWrapEle"></div>
+    <div class="closed" id="gui-container"></div>
+    <template v-if="loading">
+      <Loading></Loading>
+    </template>
   </div>
 </template>
 
 <script >
-import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { fabric } from "fabric";
-import GUI from "lil-gui";
+import Vue from "vue";
+import { Photoshop, Material, Slider } from "vue-color";
+import CreateShow from "./utils/3DShoe";
+import Loading from "./components/loading.vue";
+import Materia from "./utils/Materia";
 export default {
   name: "App",
+  components: {
+    Loading,
+    Photoshop,
+    Material,
+    Slider,
+  },
   data() {
     return {
-      ctWrapEle: {},
-      canvas1: {},
-      gltfres: {},
-      ctFabric: {},
-      ctCanvas: {},
-      objItem: {},
+      size: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+
+      selectedColor: "#ffffff",
+      from: "Side02",
+      textureObj: {},
+
+      loading: true,
+      text: "",
+      list: [
+        {
+          type: "Side02",
+          rotate: {
+            position: [
+              {
+                x: -0.15514408412884806,
+                y: 0.45583742834700647,
+                z: 4.416298087252979,
+              },
+            ],
+          },
+          title: "左",
+          value: [
+            {
+              title: "材质",
+              value: [
+                {
+                  title: "原图",
+                  type: ["Side02", "original"],
+                  map: "./Canvas/Canvas/Side02_Diffuse02.png",
+                  normalMap: "./Canvas/Canvas/Side02_Normal.png",
+                  url: "./Canvas/textures/Snipaste_2023-05-10_15-30-42.png",
+                },
+              ],
+            },
+            {
+              title: "贴图",
+              value: [
+                {
+                  url: "./img/23.png",
+                },
+                {
+                  url: "./img/21.png",
+                },
+                {
+                  url: "./img/13.png",
+                },
+                {
+                  url: "./img/12.png",
+                },
+                {
+                  url: "./img/9.png",
+                },
+                {
+                  url: "./img/7.png",
+                },
+                {
+                  url: "./img/5.png",
+                },
+                {
+                  url: "./img/4.png",
+                },
+                {
+                  url: "./img/2.png",
+                },
+                {
+                  url: "./img/10.png",
+                },
+              ],
+            },
+            {
+              title: "文字",
+            },
+          ],
+        },
+        {
+          type: "Tongue",
+          rotate: {
+            position: [
+              {
+                x: -4.566183090477527,
+                y: 5.8392105923152124,
+                z: -0.26348666816662436,
+              },
+            ],
+          },
+          title: "前面",
+
+          value: [
+            {
+              title: "材质",
+
+              value: [
+                {
+                  title: "原图",
+                  type: ["Tongue", "original"],
+                  map: "./Canvas/Canvas/Tongue_Heel_Diffuse02a.png",
+                  normalMap: "./Canvas/Canvas/Tongue_Heel_Normal.png",
+                  url: "./Canvas/textures/Snipaste_2023-05-10_15-30-42.png",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          rotate: {
+            position: [
+              {
+                x: -2.1627944257985083,
+                y: 5.313623373208952,
+                z: -0.16654404431364367,
+              },
+            ],
+          },
+          type: "ShoeLace",
+          title: "鞋带",
+
+          value: [
+            {
+              title: "材质",
+              value: [
+                {
+                  title: "原图",
+                  type: ["ShoeLace", "original"],
+                  map: "./Canvas/Canvas/ShoeLace_Diffuse02.png",
+                  normalMap: "./Canvas/Canvas/ShoeLace_Normal.png",
+                  url: "./Canvas/textures/Snipaste_2023-05-10_15-30-42.png",
+                },
+              ],
+            },
+          ],
+        },
+
+        {
+          type: "Side01",
+          rotate: {
+            position: [
+              {
+                x: 1.3928477225866174,
+                y: 0.632767367957918,
+                z: -4.170746566638777,
+              },
+            ],
+          },
+          title: "右",
+
+          value: [
+            {
+              title: "材质",
+              value: [
+                {
+                  title: "原图",
+                  type: ["Side01", "original"],
+                  map: "./Canvas/Canvas/Side01_Diffuse02.png",
+                  normalMap: "./Canvas/Canvas/Side01_Normal.png",
+                  url: "./Canvas/textures/Snipaste_2023-05-10_15-30-42.png",
+                },
+              ],
+            },
+
+            {
+              title: "贴图",
+              value: [
+                {
+                  url: "./img/23.png",
+                },
+                {
+                  url: "./img/21.png",
+                },
+                {
+                  url: "./img/13.png",
+                },
+                {
+                  url: "./img/12.png",
+                },
+                {
+                  url: "./img/9.png",
+                },
+                {
+                  url: "./img/7.png",
+                },
+                {
+                  url: "./img/5.png",
+                },
+                {
+                  url: "./img/4.png",
+                },
+                {
+                  url: "./img/2.png",
+                },
+                {
+                  url: "./img/10.png",
+                },
+              ],
+            },
+            {
+              title: "文字",
+            },
+          ],
+        },
+      ],
+      activeId: 0,
+      activePid: 0,
+      activeImg: 0,
     };
+  },
+
+  computed: {
+    secondLevel() {
+      return this.list[this.activeId].value;
+    },
+    showImgList() {
+      return this.list[this.activeId].value[this.activePid];
+    },
+    color() {
+      return {
+        color: this.selectedColor.hex,
+        fontSize: "20px",
+      };
+    },
+    isMobile() {
+      function isMobile() {
+        // 使用正则表达式匹配常见的移动设备名称
+        const mobileRegex =
+          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+
+        // 判断用户代理字符串中是否包含移动设备名称
+        return mobileRegex.test(navigator.userAgent);
+      }
+
+      // 调用函数判断用户是手机还是PC端登录
+      if (isMobile()) {
+        // 手机端登录
+        this.size.height = window.innerHeight / 2;
+        document.body.classList.add("Mobile");
+        return "Mobile";
+      } else {
+        // PC端登录
+        return "pc";
+      }
+    },
   },
   methods: {
-    addimg(e) {
-      let ctFabric1 = this.ctFabric;
-      console.log();
-      if (e.target.localName === "img") {
-        var img = new fabric.Image(
-          e.target,
-          // 设置图片的位置为固定位置
-          {
-            left: 1100,
-            top: 370.64996971937535,
-            angle: 0,
-            scaleX: 0.19098945265925424,
-            scaleY: 0.19098945265925424,
-            flipX: false,
-            flipY: false,
-            //
-            originX: "center",
-            originY: "center",
-            padding: 10,
-          }
-          // 将图片添加到画布中
-        );
-        ctFabric1.add(img);
+    isLoading() {
+      this.loading = false;
+    },
+    topClick(index, rotate1, type) {
+      this.activeId = index;
+      this.activePid = 0;
+      // 右边0.5
+      //
+      if (type === "Side02" || type === "Side01") {
+        let value = {
+          url: this.list[this.activeId].value[1].value[this.activeImg].url,
+        };
+        this.$cbyc.setTextures(value);
       }
-    },
-    onclose() {
-      console.log(this.ctWrapEle);
-      this.ctWrapEle.style.pointerEvents = "none";
-    },
-    ClickImg() {
-      this.ctWrapEle.style.pointerEvents = "all";
-    },
-  },
-  mounted() {
-    this.ctWrapEle = this.$refs.ctWrapEle;
-
-    let iskai = false;
-    let targetMap = {};
-    let ctCanvas = document.createElement("canvas");
-    ctCanvas.width = window.innerWidth;
-    ctCanvas.height = window.innerHeight;
-
-    let ctFabric = new fabric.Canvas(ctCanvas, {
-      preserveObjectStacking: true,
-    });
-
-    this.ctFabric = ctFabric;
-    this.ctFabric.setWidth(window.innerWidth);
-    this.ctFabric.setHeight(window.innerHeight);
-
-    const texturePx = 2048;
-
-    let mixer = document.createElement("canvas");
-    const mixerCtx = mixer.getContext("2d");
-    mixer.width = texturePx;
-    mixer.height = texturePx;
-
-    const update = () => {
-      iskai = true;
-      mixerCtx.clearRect(0, 0, mixer.width, mixer.height);
-      mixerCtx.drawImage(
-        ctCanvas,
-        0,
-        0,
-        ctCanvas.width,
-        ctCanvas.height,
-        -1930.366060724328,
-        -76.16457924156413,
-        5482.2720730225055,
-        2656.5422335436615
-      );
-      // basic color
-      mixerCtx.globalCompositeOperation = "destination-over";
-      mixerCtx.fillStyle = "#ffffff";
-      mixerCtx.fillRect(0, 0, mixer.width, mixer.height);
-      targetMap.needsUpdate = true;
-      render();
-    };
-
-    // 创建矩形元素
-    const canvas = this.$refs.canvas;
-    this.canvas1 = canvas;
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#000000");
-    // 2创建相机
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-
-    // 设置相机位置
-    camera.position.set(0, 0, 7);
-    // 把相机添加到场景中
-    scene.add(camera);
-
-    const loader = new GLTFLoader();
-    loader.setCrossOrigin(true); //跨域共享资源
-    const guiobj = {
-      leftColor: "#9d9d9d",
-      rightColor: "#9d9d9d",
-      laceColor: "#9d9d9d",
-      frontColor: "#9d9d9d",
-    };
-    const gui = new GUI();
-
-    let gltres = (gltf) => {
-      this.gltfres = gltf;
-      scene.add(this.gltfres);
-    };
-
-    loader.load(
-      "./chunk-70-AHT-091001.glb",
-      function (gltf) {
-        iskai = true;
-        const carModel = gltf.scene;
-        carModel.traverse((obj) => {
-          if (obj.name === "Side01") {
-            //右
-            gui
-              .addColor(guiobj, "rightColor")
-              .name("右边")
-              .onChange((value) => {
-                obj.material.color.set(value);
-              });
-          } else if (obj.name === "Side02") {
-            // let canvas = document.getElementById("c");
-            var canvasTexture = new THREE.CanvasTexture(mixer);
-            canvasTexture.wrapS = THREE.RepeatWrapping;
-            canvasTexture.wrapT = THREE.RepeatWrapping;
-            obj.material.map = canvasTexture;
-            obj.material.map.needsUpdate = true;
-            obj.material.map.flipY = false; //图片反
-            ctFabric.on("after:render", function () {
-              update();
-            });
-            targetMap = obj.material.map;
-            // 左
-            gui
-              .addColor(guiobj, "leftColor")
-              .name("左边")
-              .onChange((value) => {
-                obj.material.color.set(value);
-              });
-          } else if (obj.name === "ShoeLace") {
-            // 带
-            gui
-              .addColor(guiobj, "laceColor")
-              .name("鞋带")
-              .onChange((value) => {
-                obj.material.color.set(value);
-              });
-          } else if (obj.name === "Tongue") {
-            gui
-              .addColor(guiobj, "frontColor")
-              .name("前面")
-              .onChange((value) => {
-                obj.material.color.set(value);
-              });
-          } else {
-          }
+      let rotate = JSON.parse(JSON.stringify(rotate1));
+      let value = {
+        rotate,
+        type,
+      };
+      if (
+        (type === "Side02" && this.from === "Side01") ||
+        (type === "Side01" && this.from === "Side02")
+      ) {
+        value.rotate.position.unshift({
+          x: -0.058219784373530606,
+          y: 11.180184525848116,
+          z: -0.009188291082589443,
         });
-        gltf.scene.rotation.y = -1.8;
-        // gltf.scene.position.z = 0.5;
-        // gltf.scene.position.y = -0.5;
-        update();
-
-        gltres(gltf.scene);
-      },
-      undefined,
-      function (error) {
-        console.error(error);
-      }
-    );
-
-    //灯光
-    const light1 = new THREE.DirectionalLight(0xffffff, 0.3);
-    light1.position.set(0, 0, 10);
-
-    const light2 = new THREE.DirectionalLight(0xffffff, 0.3);
-    light2.position.set(0, 0, -10);
-
-    const light3 = new THREE.DirectionalLight(0xffffff, 0.3);
-    light3.position.set(10, 0, 0);
-
-    const light4 = new THREE.DirectionalLight(0xffffff, 0.3);
-    light4.position.set(-10, 0, 0);
-
-    const light5 = new THREE.DirectionalLight(0xffffff, 0.3);
-    light5.position.set(0, 10, 0);
-
-    const light6 = new THREE.DirectionalLight(0xffffff, 0.3);
-    light6.position.set(5, 10, 0);
-
-    const light7 = new THREE.DirectionalLight(0xffffff, 0.3);
-    light7.position.set(0, 10, 5);
-
-    // const light8 = new THREE.DirectionalLight(0xffffff, 0.3);
-    // light8.position.set(0, 10, -5);
-    const light9 = new THREE.DirectionalLight(0xffffff, 0.3);
-    light9.position.set(-5, -10, 0);
-
-    scene.add(
-      light1,
-      light2,
-      light3,
-      light4,
-      light5,
-      light6,
-      light7,
-      // light8,
-      light9
-    );
-
-    // //添加坐标轴辅助器
-    const axesHelper = new THREE.AxesHelper(5);
-    scene.add(axesHelper);
-
-    //初始化渲染器
-    const renderer = new THREE.WebGLRenderer({ canvas });
-    //设置渲染的尺寸大小
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-    //轨道控制器
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enablePan = false;
-    controls.update();
-    controls.addEventListener("change", () => {
-      iskai = true;
-    });
-    //使用渲染器 ，通过相机将场景渲染进来
-    function render() {
-      controls.update();
-      if (iskai) {
-        setInterval(() => {
-          if (iskai) iskai = false;
-        }, 100);
-        controls.update();
-        renderer.render(scene, camera);
       }
 
-      //   渲染下一帧的时候就会调用render函数
-    }
-    renderer.setAnimationLoop(render);
+      this.$cbyc.Rotate(value);
+      this.from = type;
+    },
+    towClick(index) {
+      this.activePid = index;
+    },
+    Textures(type, url, index) {
+      this.activeImg = index;
+      let value = {};
+      if (type) {
+        value.material = this.textureObj[type[0]][type[1]];
+      } else {
+        value.url = url;
+      }
+      this.$cbyc.setTextures(value);
+    },
+    addText() {
+      this.$cbyc.setText(this.text, this.selectedColor.hex);
+    },
+    loginType() {},
+  },
 
-    if (this.$refs.ctWrapEle.firstChild) {
-      this.$refs.ctWrapEle.removeChild(this.$refs.ctWrapEle.firstChild);
-    }
-    this.$refs.ctWrapEle.appendChild(this.ctFabric.wrapperEl);
-
-    window.addEventListener("resize", function () {
-      // camera
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-
-      // renderer
-      renderer.setSize(window.innerWidth, window.innerHeight);
+  created() {},
+  mounted() {
+    const canvas = this.$refs.canvas;
+    this.textureObj = Materia(this.list);
+    Vue.prototype.$cbyc = new CreateShow({
+      canvas,
+      loading: this.isLoading,
+      Width: this.size.width,
+      Height: this.size.height,
+      isMobile: this.isMobile,
     });
+    let value = {
+      url: this.list[this.activeId].value[1].value[this.activeImg].url,
+    };
+    this.$cbyc.setTextures(value);
+    console.log(this.isMobile);
+    if (this.isMobile === "Mobile") {
+      const element = document.querySelector('[aria-expanded="true"]');
+      element.click();
+    }
   },
 };
 </script>
 
-<style>
-.img {
-  position: fixed;
-  top: 0;
-  left: -8px;
-  width: 400px;
-  height: 400px;
+<style lang='scss'>
+.closed {
+  display: none;
 }
-img {
-  margin: 10px 20px;
-  width: 100px;
-  width: 100px;
-}
-.div {
-  position: fixed !important;
-  top: 0;
-  left: 10px;
+.Mobile {
+  .lil-gui.autoPlace {
+    width: 100%;
+    top: 50% !important;
+    left: 0 !important;
 
-  z-index: 1111 !important;
-  /* background-color: red; */
+    .children {
+      height: 50vh;
+    }
+  }
 }
 
-.cby-3dcore-ctexture-wrap {
-  position: absolute;
-  left: 0;
-  top: 0;
+.Mobile {
   width: 100%;
   height: 100%;
-  z-index: 2;
-  opacity: 0;
-  pointer-events: none;
-}
-.text {
-  width: 500px;
-  height: 300px;
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 77777;
+  overflow: hidden;
+  background-color: #1f2322;
 
-  background-color: rgb(155, 177, 170, 0.2);
+  .text {
+    padding-top: 40px;
+    height: 50vh;
+    background-color: rgb(155, 177, 170, 0.2);
+    .top {
+      width: 100vw;
+      display: flex;
+      justify-content: space-evenly;
+      .item {
+        background-color: #fff;
+        flex: 1;
+        margin: 0 3px;
+        border-radius: 3px;
+        text-align: center;
+        line-height: 5vh;
+      }
+    }
+    .tow {
+      margin-top: 5px;
+      display: flex;
+      justify-content: space-around;
+      .item {
+        background-color: #fff;
+        width: 25vw;
+        margin: 0 3px;
+        border-radius: 3px;
+        text-align: center;
+        line-height: 5vh;
+      }
+    }
+    .imgs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      margin-top: 3px;
+      img {
+        width: 19vw;
+        height: 19vw;
+      }
+      .itemImg {
+        display: flex;
+        width: 20vw;
+        height: 20vw;
+        flex-direction: column;
+        align-items: center;
+        max-width: 70px;
+        max-height: 70px;
+      }
+      .text_input {
+        margin: 10px 0;
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+        input {
+          border-radius: 4px;
+        }
+        button {
+          border-radius:5px ;
+          width: 70px;
+          line-height: 30px;
+          background-color: #6088ad;
+        }
+      }
+    }
+  }
 }
-.top {
-  display: flex;
-  width: 100%;
+
+.active {
+  background-color: #cccc !important;
 }
-.top div {
-  width: 40px;
-  text-align: center;
-  line-height: 40px;
-  margin: 20px 50px;
-  background-color: rgb(22, 239, 170);
-}
-img {
-  width: 80px;
-  height: 60px;
+.pc {
+  .text {
+    width: 290px;
+    height: 534px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 77777;
+    padding: 5px;
+    background-color: rgb(155, 177, 170, 0.2);
+    .top {
+      background-color: #070707;
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+      font-size: 24px;
+      .item {
+        margin: 10px 3px;
+        flex: 1;
+        text-align: center;
+        padding: 3px;
+        background-color: #ffffff;
+        border-radius: 5px;
+      }
+    }
+    .tow {
+      line-height: 40px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      background-color: #070707;
+      justify-content: space-between;
+      padding: 10px 40px;
+      .item {
+        font-size: 24px;
+        padding: 3px;
+        background-color: #ffffff;
+        border-radius: 5px;
+      }
+    }
+    .imgs {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      .text_img {
+        margin-top: 5px;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        .text_input {
+          margin-bottom: 5px;
+          width: 100%;
+          display: flex;
+          justify-content: space-around;
+          align-items: center;
+        }
+        .textInput {
+          width: 199px;
+          height: 50px;
+          border-radius: 5px;
+        }
+        button {
+          height: 50px;
+          background-color: #0aa7a2;
+        }
+      }
+      .itemImg {
+        img {
+          width: 80px;
+          height: 60px;
+        }
+        margin: 0 5px;
+        display: flex;
+        flex-direction: column;
+        // justify-content: center;
+        align-items: center;
+        font-size: 14px;
+        color: #ffffff;
+      }
+    }
+  }
 }
 </style>
